@@ -80,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BluetoothGattService mservice = null;
     private BluetoothGattCharacteristic mDataCharacteristic = null;
 
-    //データ配列
+    //データ配列a
     private ArrayList<Double> data1 = new ArrayList<>();
     private ArrayList<Double> data2 = new ArrayList<>();
     private ArrayList<Integer> log = new ArrayList<>();
