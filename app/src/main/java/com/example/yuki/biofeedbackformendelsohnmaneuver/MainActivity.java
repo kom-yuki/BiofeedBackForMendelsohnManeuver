@@ -80,15 +80,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private BluetoothGattService mservice = null;
     private BluetoothGattCharacteristic mDataCharacteristic = null;
 
-    //データ配列a
+    //データ配列
     private ArrayList<Double> data1 = new ArrayList<>();
     private ArrayList<Double> data2 = new ArrayList<>();
     private ArrayList<Integer> log = new ArrayList<>();
     private ArrayList<Integer> swallow = new ArrayList<>();
     private ArrayList<Double> diff = new ArrayList<>();
-    //private ArrayList<Double> smoothingDiff = new ArrayList<>();
     private ArrayList<ArrayList<Double>> Templist = new ArrayList<>();
     private ArrayList<ArrayList<Double>> DTWDistance = new ArrayList<>();
+    private double maxData1, maxData2, minData1, minData2;
 
     private CheckSwallow checker = new CheckSwallow();
 
@@ -196,20 +196,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 double CH1 = bb1.getShort()*0.0016;
                 double CH2 = bb2.getShort()*0.0016;
 
-                data1.add(CH1);
-                data2.add(CH2);
+                if (setSensorFlag == 1) {
+                    if (spinner_channel.getSelectedItemPosition() + 1 == 1) {
+                        addEntry(CH1);
+                    } else if (spinner_channel.getSelectedItemPosition() + 1 == 2) {
+                        addEntry(CH2);
+                    }
 
+                    //最大値，最小値の記憶
+                    if (maxData1 < CH1) {
+                        maxData1 = CH1;
+                    } else if (minData1 > CH1) {
+                        minData1 = CH1;
+                    }
 
-                if(spinner_channel.getSelectedItemPosition()+1 == 1){
-                    addEntry(CH1);
+                    if (maxData2 < CH2) {
+                        maxData2 = CH2;
+                    } else if (minData2 > CH2) {
+                        minData2 = CH2;
+                    }
                 }
-                else if(spinner_channel.getSelectedItemPosition()+1 == 2){
-                    addEntry(CH2);
-                }
-
 
                 //センサ位置調整していないとき，挙上検出行う
                 if (setSensorFlag == 0) {
+                    //正規化
+                    data1.add((CH1-minData1)/(maxData1-minData1));
+                    data2.add((CH2-minData2)/(maxData2-minData2));
+
+                    if (spinner_channel.getSelectedItemPosition()+1 == 1){
+                        addEntry((CH1-minData1)/(maxData1-minData1));
+                    }
+                    else if(spinner_channel.getSelectedItemPosition()+1 == 2){
+                        addEntry((CH2-minData2)/(maxData2-minData2));
+                    }
+
                     //ログの時間を表示させる。
                     if (flag == 1) {
                         timeCount++;
@@ -343,7 +363,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         ((TextView) findViewById(R.id.textview_BLEconnect)).setTextColor(Color.GRAY);
 
 
-        initChart2();
+        initChartForNormalize();
 
         // Android端末がBLEをサポートしてるかの確認
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
@@ -362,7 +382,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         //テンプレートの読み込み
-        String dirTempString = Environment.getExternalStorageDirectory() + "/Biofeedback_DTW/template/";
+        String dirTempString = Environment.getExternalStorageDirectory() + "/BiofeedbackForMendelsohnManeuver/Template/";
         File dirTemp = new File(dirTempString);
         File[] filesTemp;
         filesTemp = dirTemp.listFiles();
@@ -401,6 +421,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void initChart() {
 
+        mChart.clear();
         mChart = findViewById(R.id.chart);
         mChart.clearAnimation();
         flag = 0;
@@ -448,10 +469,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.setTextColor(Color.BLACK);
 
-        //leftAxis.setAxisMaximum(1.5f);
-        //leftAxis.setAxisMinimum(0.6f);
-        leftAxis.setAxisMaximum(1.8f);
-        leftAxis.setAxisMinimum(0.8f);
+        leftAxis.setAxisMaximum(1.1f);
+        leftAxis.setAxisMinimum(-0.0f);
         leftAxis.setEnabled(true);
 
         leftAxis.setDrawGridLines(true);
@@ -460,8 +479,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         rightAxis.setEnabled(false);
     }
-
-    private void initChart2() {
+    
+    private void initChartForNormalize() {
 
         mChart = findViewById(R.id.chart);
         mChart.clearAnimation();
@@ -524,96 +543,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         rightAxis.setEnabled(false);
     }
 
-    private void addEntry(double value1, double value2) {
-        LineData data = mChart.getData();
-
-        if (data != null) {
-
-            ILineDataSet set1 = data.getDataSetByIndex(0);
-            ILineDataSet set2 = data.getDataSetByIndex(1);
-            ILineDataSet set3 = data.getDataSetByIndex(2);
-            ILineDataSet set4 = data.getDataSetByIndex(3);
-
-
-            if (set1 == null) {
-                set1 = createSet(0);
-                data.addDataSet(set1);
-            }
-            if (set2 == null) {
-                set2 = createSet(1);
-                data.addDataSet(set2);
-            }
-            if (set3 == null) {
-                set3 = createSet(2);
-                data.addDataSet(set3);
-            }
-            if (set4 == null && spinner_hantei.getSelectedItemPosition() != 0) {
-                set4 = createSet(3);
-                data.addDataSet(set4);
-            }
-
-            data.addEntry(new Entry(set1.getEntryCount(),(float) value1), 0);
-            data.addEntry(new Entry(set2.getEntryCount(),(float) value2), 1);
-
-
-            if (flag == 0) {
-                if (log.contains(data1.size() - 1)) {
-                    data.addEntry(new Entry(set3.getEntryCount(), 5), 2);
-                    flag = 1;
-                } else {
-                    data.addEntry(new Entry(set3.getEntryCount(), -5), 2);
-                }
-            } else {
-                if (log.contains(data1.size() - 1)) {
-                    data.addEntry(new Entry(set3.getEntryCount(), -5), 2);
-                    flag = 0;
-                } else {
-                    data.addEntry(new Entry(set3.getEntryCount(), 5), 2);
-                }
-            }
-
-
-            if (spinner_hantei.getSelectedItemPosition() != 0){
-                if(flag2 == 0){
-                    if (swallow.contains(data1.size() - 1)) {
-                        data.addEntry(new Entry(set4.getEntryCount(),5), 3);
-                    }
-                    else {
-                        data.addEntry(new Entry(set4.getEntryCount(),-5), 3);
-                    }
-                }
-                else{
-                    if (swallow.contains(data1.size() - 1)) {
-                        data.addEntry(new Entry(set4.getEntryCount(),-5), 3);
-                    }
-                    else {
-                        data.addEntry(new Entry(set4.getEntryCount(),5), 3);
-                    }
-                }
-            }
-
-
-            //x軸について
-            XAxis xl = mChart.getXAxis();
-            if(data1.size() < 120){
-                xl.setAxisMaximum(120f);
-                xl.setAxisMinimum(0f);
-            }
-            else{
-                xl.setAxisMaximum(data1.size());
-            }
-
-            //更新を通知
-            data.notifyDataChanged();
-            mChart.notifyDataSetChanged();
-            mChart.setVisibleXRangeMaximum(120);
-            mChart.setVisibleXRangeMinimum(120);
-            mChart.moveViewToX(data.getEntryCount());
-        }
-    }
     private void addEntry(double value) {
         LineData data = mChart.getData();
-
 
         if (data != null) {
 
@@ -679,7 +610,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 }
             }
-
 
             //x軸について
             XAxis xl = mChart.getXAxis();
@@ -758,7 +688,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             connect();
         }
     }
-
 
     // 別のアクティビティ（か別のアプリ）に移行したことで、バックグラウンドに追いやられた時
     @Override
@@ -859,7 +788,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             return;
         }
-        if (mButton_end.getId() == v.getId())       //エンドボタン押されたとき
+        if (mButton_end.getId() == v.getId())   //エンドボタン押されたとき
         {
             ( (TextView)findViewById( R.id.textview_message ) ).setText("計測終了");
             writeCommand("2");
@@ -886,9 +815,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (mButton_set_on.getId() == v.getId() && setSensorFlag == 0) //センサ位置調整用ボタン
         {
+            maxData1 = Double.MIN_VALUE;
+            minData1 = Double.MAX_VALUE;
+            maxData2 = Double.MIN_VALUE;
+            minData2 = Double.MAX_VALUE;
+
             setSensorFlag = 1;
             ( (TextView)findViewById( R.id.textview_message ) ).setText("センサ位置調整中");
-            initChart2();
+            initChartForNormalize();
             writeCommand("1");
             setCharacteristicNotification( UUID_SERVICE_PRIVATE, UUID_CHARACTERISTIC_PRIVATE1 );
 
@@ -905,7 +839,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         {
             setSensorFlag = 0;
             ( (TextView)findViewById( R.id.textview_message ) ).setText("センサ位置調整完了");
-            initChart2();
+            initChartForNormalize();
             writeCommand("2");
 
             mButton_start.setEnabled(true);
@@ -1001,19 +935,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void writeData(){
         Date date = new Date(System.currentTimeMillis());
         DateFormat df  = new SimpleDateFormat("yyyyMMdd");
-        File dir_init = new File(Environment.getExternalStorageDirectory() + "/Biofeedback_DTW");
+        File dir_init = new File(Environment.getExternalStorageDirectory() + "/BiofeedbackForMendelsohnManeuver");
         if(!dir_init.exists()){
             dir_init.mkdir();
         }
-        File dir = new File(Environment.getExternalStorageDirectory() + "/Biofeedback_DTW/" + df.format(date));
+        File dir = new File(Environment.getExternalStorageDirectory() + "/BiofeedbackForMendelsohnManeuver/" + df.format(date));
         if(!dir.exists()){
             dir.mkdir();
         }
-        File dir_data = new File(Environment.getExternalStorageDirectory() + "/Biofeedback_DTW/" + df.format(date) + "/data/");
+        File dir_data = new File(Environment.getExternalStorageDirectory() + "/BiofeedbackForMendelsohnManeuver/" + df.format(date) + "/data/");
         if(!dir_data.exists()){
             dir_data.mkdir();
         }
-        File dir_DTW = new File(Environment.getExternalStorageDirectory() + "/Biofeedback_DTW/" + df.format(date) + "/DTWDistance/");
+        File dir_DTW = new File(Environment.getExternalStorageDirectory() + "/BiofeedbackForMendelsohnManeuver/" + df.format(date) + "/DTWDistance/");
         if(!dir_DTW.exists()){
             dir_DTW.mkdir();
         }
@@ -1093,8 +1027,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 ((TextView) findViewById(R.id.textview_message)).setText("ファイルを書き込みました。");
 
-                String[] paths = {Environment.getExternalStorageDirectory().toString()+ "/Biofeedback_DTW/"+ df.format(date) + "/data/" + name + ".csv"};
-                String[] paths_DTW = {Environment.getExternalStorageDirectory().toString()+ "/Biofeedback_DTW/"+ df.format(date) + "/DTWDistance/" + name + "_DTWDistance.csv"};
+                String[] paths = {Environment.getExternalStorageDirectory().toString()+ "/BiofeedbackForMendelsohnManeuver/"+ df.format(date) + "/data/" + name + ".csv"};
+                String[] paths_DTW = {Environment.getExternalStorageDirectory().toString()+ "/BiofeedbackForMendelsohnManeuver/"+ df.format(date) + "/DTWDistance/" + name + "_DTWDistance.csv"};
 
                 String[] mimeTypes = {"text/csv"};
                 MediaScannerConnection.OnScanCompletedListener mScanCompletedListener = new MediaScannerConnection.OnScanCompletedListener() {
