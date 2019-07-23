@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BiofeedbackForMendelsohnManeuver</string>
+    <string name="app_name">Biofeedback_DTW</string>
 
     <!-- MainActivity トースト用 -->
     <string name="ble_is_not_supported">BLE is not supported</string>
@@ -10,8 +10,17 @@
     <string name="search">Search</string>
 
     <!-- MainActivity ラベル用 -->
-    <string name="device_name">Device Name : </string>
-    <string name="device_address">Device Address : </string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="subject">被験者名</string>
+    <string name="trial">試行</string>
+    <string name="hint">日付が入る</string>
+    <string name="Write">保存</string>
+    <string name="Start">開始</string>
+    <string name="End">停止</string>
+    <string name="Log">ログ</string>
+    <string name="SetOn">センサ位置調整開始</string>
+    <string name="SetOff">センサ位置調整終了</string>
 
     <!-- DeviceListActivity トースト用 -->
     <string name="unknown_device">Unknown device</string>
@@ -19,5 +28,18 @@
     <!-- DeviceListActivity メニュー用 -->
     <string name="scan">Scan</string>
     <string name="stop">Stop</string>
+    <string name="ch2">CH2</string>
+    <string name="ch1">CH1</string>
+    <string name="displaySensor">描画センサ :</string>
+    <string name="laryngealSensor">隆起部上センサ :</string>
+    <string name="detection">挙上判定 :</string>
+    <string name="countDown">カウントダウン時間 :</string>>
+    <string name="message">Message :</string>
+    <string name="csv">.csv</string>
+    <string name="fileName">ファイル名 :</string>
+    <string name="Trial">試行事例 :</string>
+    <string name="Subject">被験者 :</string>
+    <string name="deviceState">機器未接続</string>
+
 
 </resources>

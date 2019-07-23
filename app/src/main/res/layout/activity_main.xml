@@ -1,55 +1,293 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_margin="10dp"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
-        android:orientation="horizontal">
+        android:background="#E0FFFF"
+        android:orientation="vertical">
 
-        <TextView
+
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/device_name"
-            android:textSize="18sp"/>
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
 
-        <Space
-            android:layout_width="5dp"
-            android:layout_height="wrap_content"/>
+            <Space
+                android:layout_width="20dp"
+                android:layout_height="wrap_content" />
 
-        <TextView
-            android:id="@+id/textview_devicename"
+
+            <Space
+                android:layout_width="20dp"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/textview_BLEconnect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/deviceState"
+                android:textSize="15sp"
+                />
+
+            <Space
+                android:layout_width="20dp"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/button_set_on"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/SetOn"
+                android:textSize="15sp"
+                />
+
+            <Space
+                android:layout_width="20dp"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/button_set_off"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/SetOff"
+                android:textSize="15sp"
+                />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"/>
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
 
-    </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/Subject"
+                android:textSize="30sp" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dp"
-        android:orientation="horizontal">
+            <EditText
+                android:id="@+id/subject_name"
+                android:layout_width="200dp"
+                android:layout_height="wrap_content"
+                android:background="#ffffff"
+                android:gravity="center"
+                android:hint="@string/subject"
+                android:focusable="false"
+                android:focusableInTouchMode="false"
+                android:textSize="30sp"
+                android:inputType="" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/device_address"
-            android:textSize="18sp"/>
+            <Space
+                android:layout_width="50dp"
+                android:layout_height="wrap_content" />
 
-        <Space
-            android:layout_width="5dp"
-            android:layout_height="wrap_content"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/fileName"
+                android:textSize="30sp" />
 
-        <TextView
-            android:id="@+id/textview_deviceaddress"
+            <TextView
+                android:id="@+id/file_text"
+                android:layout_width="240dp"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:hint="@string/hint"
+                android:focusable="false"
+                android:focusableInTouchMode="false"
+                android:textSize="30sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/csv"
+                android:textSize="30sp" />
+
+            <Space
+                android:layout_width="5dp"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"/>
-    </LinearLayout>
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
 
-</LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/message"
+                android:textSize="30sp" />
+
+            <Space
+                android:layout_width="5dp"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/textview_message"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="30sp" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/laryngealSensor"
+                android:textSize="30sp" />
+            <Space
+                android:layout_width="20dp"
+                android:layout_height="wrap_content" />
+
+            <Spinner
+                android:id="@+id/channel"
+                android:layout_width="wrap_content"
+                android:layout_height="40sp"
+                android:textSize="30sp"
+                android:entries="@array/channel"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/Trial"
+                android:textSize="30sp" />
+            <Space
+                android:layout_width="20dp"
+                android:layout_height="wrap_content" />
+
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_height="40sp"
+                android:textSize="30sp"
+                android:id="@+id/trial_name"
+                android:entries="@array/trial_name"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/detection"
+                android:textSize="30sp" />
+            <Space
+                android:layout_width="15dp"
+                android:layout_height="wrap_content" />
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_height="40sp"
+                android:textSize="30sp"
+                android:id="@+id/hantei"
+                android:entries="@array/hantei"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="10dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/countDown"
+                android:textSize="30sp" />
+            <Space
+                android:layout_width="15dp"
+                android:layout_height="wrap_content" />
+            <Spinner
+                android:layout_width="wrap_content"
+                android:layout_height="40sp"
+                android:textSize="30sp"
+                android:id="@+id/countDown"
+                android:entries="@array/countDown"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/chart"
+            android:layout_width="match_parent"
+            android:layout_height="500dp"
+            android:layout_weight="1" />
+
+        <FrameLayout android:layout_width="fill_parent"
+            android:id="@+id/frameLayout1"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="30dp"
+                android:orientation="horizontal"
+                android:layout_gravity="left|center">
+
+                <Button
+                    android:id="@+id/button_start"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/Start"
+                    android:textSize="20sp" />
+
+                <Space
+                    android:layout_width="10dp"
+                    android:layout_height="wrap_content" />
+
+                <Button
+                    android:id="@+id/button_end"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/End"
+                    android:textSize="21sp" />
+
+                <Space
+                    android:layout_width="10dp"
+                    android:layout_height="wrap_content" />
+
+                <Button
+                    android:id="@+id/button_log"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/Log"
+                    android:textSize="20sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_gravity="center|bottom"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:id="@+id/timeCount"
+                android:textSize="80sp" />
+        </FrameLayout>
+
+    </LinearLayout>
+</ScrollView>
