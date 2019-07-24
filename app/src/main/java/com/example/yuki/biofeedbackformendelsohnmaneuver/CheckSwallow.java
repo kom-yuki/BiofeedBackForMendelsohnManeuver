@@ -1,72 +1,45 @@
 package com.example.yuki.biofeedbackformendelsohnmaneuver;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
-public class CheckSwallow {
-    private double sumDiff;
-    private double average;
-    private double minDiff;
-    private double maxDiff;
-    private double rangeDiff;
-    private int flag, onset, offset;
+class CheckSwallow {
+
+    private ArrayList<Double> template;
+    private int sumDiff;
+    double average, minDiff, maxDiff, rangeDiff;
     private ArrayList<Double> diff;
     private ArrayList<Double> smoothingDiff;
-    private int usedtemp;
-    private double DTWThreshold;
-    private ArrayList<Double> DTWDistance;
-    private ArrayList<Double> DTWDistanceDiff;
-    private ArrayList<Double> initDTW;
-    private int[][] matching;
+    private ArrayList<Double> dtwDistance;
+    private SPRING_DTW spring_dtw;
 
-    public CheckSwallow() {
-        DTWThreshold = 0.0;
-        smoothingDiff = new ArrayList<>();
+    CheckSwallow(ArrayList<Double> temp){
         diff = new ArrayList<>();
-        DTWDistance = new ArrayList<>();
-        DTWDistanceDiff = new ArrayList<>();
-        initDTW = new ArrayList<>();
+        smoothingDiff = new ArrayList<>();
+        template = temp;
+        spring_dtw = new SPRING_DTW(template);
+        dtwDistance = new ArrayList<>();
     }
 
-    public void initialized(){
-        sumDiff = 0;
-        average = 0;
-        minDiff = Double.MAX_VALUE;
-        maxDiff = Double.MIN_VALUE;
-        rangeDiff = 0;
-        flag = 0;
-        onset = 0;
-        offset = 0;
-        usedtemp = 0;
-        DTWThreshold = 0;
-        diff.clear();
-        smoothingDiff.clear();
-        DTWDistance.clear();
-        DTWDistanceDiff.clear();
-        initDTW.clear();
-    }
 
-    public boolean checkSwallow(ArrayList<Double> data, ArrayList<ArrayList<Double>> template, int restTime, int i){
-        DTWDistance.clear();
-        DTWDistanceDiff.clear();
-
-        if(i == 0){
+    boolean checkOnset(ArrayList<Double> data, int time){
+        if(time == 0){
             diff.add(0d);
             smoothingDiff.add(0d);
-        } else if (i>=4) {
-            diff.add(Math.abs(data.get(i) - data.get(i-1)));
-            smoothingDiff.add((diff.get(i)+diff.get(i-1)+diff.get(i-2)+diff.get(i-3)+diff.get(i-4))/5);
+        } else if (time>5) {
+            diff.add(Math.abs(data.get(time) - data.get(time-1)));
+            smoothingDiff.add((diff.get(time)+diff.get(time-1)+diff.get(time-2)+diff.get(time-3)+diff.get(time-4))/5);
         } else {
-            diff.add(Math.abs(data.get(i) - data.get(i-1)));
+            diff.add(Math.abs(data.get(time) - data.get(time-1)));
             smoothingDiff.add(0d);
         }
 
-        if(i<restTime){
-            sumDiff += smoothingDiff.get(i);
+        /*最初の安静時は3.5秒間*/
+        if(time<35){
+            sumDiff += smoothingDiff.get(time);
         }
-        else if(i==restTime){
-            average = sumDiff/restTime;
-            for (int j=4;j<restTime;j++){
+        else if(time==35){
+            average = sumDiff/35;
+            for (int j=0;j<35;j++){
                 if(minDiff > smoothingDiff.get(j)){
                     minDiff = smoothingDiff.get(j);
                 }
@@ -76,33 +49,8 @@ public class CheckSwallow {
             }
             rangeDiff = maxDiff - minDiff;
         }
-        else if (i>restTime && flag == 0) {
-            if (smoothingDiff.get(i) > average + 3.0 * rangeDiff) {
-                flag = 1;
-                onset = i;
-                return true;
-            }
-        }
-        else if(i >= onset + 20 && flag == 1){
-            DTW_list dtw = new DTW_list();
-            for (int j=0; j<template.size(); j++) {
-                double distance = dtw.calcReverseSlopeConstraint(data, template.get(j));
-                DTWDistance.add(distance);
-                if (i == onset + 20){
-                    initDTW.add(distance);
-                }
-                else if (distance < DTWThreshold) {
-                    flag = 2;
-                    offset = i;
-                    usedtemp = j + 1;
-                    matching = dtw.getMatching();
-                }
-            }
-            if (i == onset + 20){
-                DTWThreshold = getMedian(initDTW)*0.5;
-                //DTWThreshold = 0;
-            }
-            if (flag == 2){
+        else {
+            if (smoothingDiff.get(time) > average + 1.5*rangeDiff) {
                 return true;
             }
         }
@@ -110,72 +58,40 @@ public class CheckSwallow {
         return false;
     }
 
-    public int getOnset(){
-        return onset;
-    }
+    boolean checkOffset(ArrayList<Double> data, int time, int select){
+        boolean detection;
 
-    public int getOffset(){
-        return offset;
-    }
-
-    public int getUsedtemp(){
-        return usedtemp;
-    }
-
-    public int getFlag() {
-        return flag;
-    }
-
-
-    public ArrayList<Double> getDTWDistance(){
-        return DTWDistance;
-    }
-
-
-    public ArrayList<Double> getDiff() { return diff;}
-
-    public ArrayList<Double> getSmoothingDiff() {
-        return smoothingDiff;
-    }
-
-    public double getMedian(ArrayList<Double> x){
-        double out;
-        Collections.sort(x);
-        if (x.size() % 2 == 0){
-            out = ( x.get(x.size()/2) + x.get(x.size()/2 - 1) ) / 2;
+        if (select == 1){
+            detection =  spring_dtw.calcOptimal(data.get(time), time + 1, 3.0); //長いV字型
         }
         else {
-            out = x.get((x.size()-1)/2);
+            detection =  spring_dtw.calcFirst(data.get(time), time+1, 6.0); //バスタブ型
         }
-        return out;
+
+        dtwDistance.add(spring_dtw.getDistance().get(time + 1).get(template.size()));
+
+        return detection;
     }
 
-    public double getAverage(ArrayList<Double> x){
-        double out,sum=0;
-        for (double elem : x){
-            sum += elem;
+    void addData(ArrayList<Double> data, int time, int select){
+
+        if (select == 1){
+            spring_dtw.addDataNormal(data.get(time), time+1);
         }
-        out = sum/x.size();
-        return out;
+        else {
+            spring_dtw.addDataPathRestriction(data.get(time), time+1);
+        }
+
+        dtwDistance.add(spring_dtw.getDistance().get(time+1).get(template.size()));
     }
 
-    public double getMax(ArrayList<Double> x){
-        double max = Double.MIN_VALUE;
-        for (double elem : x){
-            if (elem > max){
-                max = elem;
-            }
-        }
-        return max;
+    ArrayList<Double> getDTW(){
+        return dtwDistance;
     }
 
-    public double getMin(ArrayList<Double> x){
-        double min = Double.MAX_VALUE;
-        for (double elem : x){
-            if (elem < min){
-                min = elem;
-            }
-        }
-        return min;
+    SPRING_DTW getSPRING_DTW(){
+        return spring_dtw;
     }
+
 }
+
