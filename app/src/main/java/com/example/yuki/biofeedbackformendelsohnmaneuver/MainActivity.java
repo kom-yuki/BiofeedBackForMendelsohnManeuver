@@ -46,6 +46,7 @@ import java.nio.ByteBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.UUID;
 
@@ -89,8 +90,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ArrayList<ArrayList<Double>> Templist = new ArrayList<>();
     private ArrayList<ArrayList<Double>> DTWDistance = new ArrayList<>();
     private double maxData1, maxData2, minData1, minData2;
+    private int flag,flagDetection;
+    private int setSensorFlag;
+    private int sampling;
+    private int timeCount=0;
+    private int maxTimeCount=0;
+    private int onset,offset,detectedPoint,usedTemplate;
 
-    private CheckSwallow checker = new CheckSwallow();
+    private CheckSwallow checker1, checker2;
 
     // GUIアイテム
     private Button mButton_start;    // 計測開始ボタン
@@ -106,11 +113,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Spinner spinner_countDown;
     private Spinner spinner_trial; //試行事例
     private LineChart mChart; //グラフ描画用
-    private int flag,flag2;
-    private int setSensorFlag;
-    private int sampling;
-    private int timeCount=0;
-    private int maxTimeCount=0;
 
 
     private EditText subject; //被験者ID
@@ -222,12 +224,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //正規化
                     data1.add((CH1-minData1)/(maxData1-minData1));
                     data2.add((CH2-minData2)/(maxData2-minData2));
+                    ArrayList<Double> data = null;
 
                     if (spinner_channel.getSelectedItemPosition()+1 == 1){
                         addEntry((CH1-minData1)/(maxData1-minData1));
+                        data = data1;
                     }
                     else if(spinner_channel.getSelectedItemPosition()+1 == 2){
                         addEntry((CH2-minData2)/(maxData2-minData2));
+                        data = data2;
                     }
 
                     //ログの時間を表示させる。
@@ -253,36 +258,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         timeCount = 0;
                     }
 
-                    int restTime = (spinner_countDown.getSelectedItemPosition() + 1) * 10;
-                    if (spinner_channel.getSelectedItemPosition() + 1 == 1) {
-                        if (checker.checkSwallow(data1, Templist, restTime, sampling)) {
-                            writeCommand("3");
-                            if (checker.getFlag() == 1) {
-                                swallow.add(checker.getOnset());
-                                flag2 = 1;
-                            } else {
-                                swallow.add(checker.getOffset());
-                                flag2 = 0;
-                            }
+                    //挙上判定
+
+                    if (flagDetection == 0){
+                        if (checker1.checkOnset(data, sampling)){
+                            onset = sampling;
+                            swallow.add(sampling);
+                            flagDetection = 1;
                         }
-                    } else if (spinner_channel.getSelectedItemPosition() + 1 == 2) {
-                        if (checker.checkSwallow(data2, Templist, restTime, sampling)) {
-                            writeCommand("3");
-                            if (checker.getFlag() == 1) {
-                                swallow.add(checker.getOnset());
-                                flag2 = 1;
-                            } else {
-                                swallow.add(checker.getOffset());
-                                flag2 = 0;
-                            }
+                        checker1.addData(data, sampling, 1);
+                        checker2.addData(data, sampling, 2);
+                    }
+                    else if (flagDetection == 1 && sampling >= onset + 10){
+                        //select = 1はSPRINGで最適部分検出，select = 2は最初に閾値下回った部分を検出
+                        if (checker1.checkOffset(data, sampling, 1)) { //checkerer1は長いV字型
+                            usedTemplate = 1;
+                            detectedPoint = sampling;
+                            swallow.add(sampling);
+                            offset = checker1.getSPRING_DTW().getT_end() - 1;
+                            flagDetection = 2;
+                            checker2.addData(data, sampling, 2);
                         }
+                        else if (checker2.checkOffset(data, sampling, 2) ){
+                            usedTemplate = 2;
+                            swallow.add(sampling);
+                            offset = sampling - 1;
+                            flagDetection = 2;
+                        }
+                    }
+                    else{
+                        checker1.addData(data, sampling, 1);
+                        checker2.addData(data, sampling, 2);
                     }
 
-                    diff = checker.getDiff();
-                    //smoothingDiff = checker.getSmoothingDiff();
-                    for (int p = 0; p < checker.getDTWDistance().size(); p++) {
-                        DTWDistance.get(p).add(checker.getDTWDistance().get(p));
-                    }
                     sampling++;
                 }
                 return;
@@ -387,6 +395,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         File[] filesTemp;
         filesTemp = dirTemp.listFiles();
 
+        java.util.Arrays.sort(filesTemp, new Comparator<File>() {
+            public int compare(File file1, File file2){
+                return file1.getName().compareTo(file2.getName());
+            }
+        });
+
         if (filesTemp == null){
             new AlertDialog.Builder(MainActivity.this)
                     .setTitle("Error!!")
@@ -425,7 +439,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mChart = findViewById(R.id.chart);
         mChart.clearAnimation();
         flag = 0;
-        flag2 = 0;
+        flagDetection = 0;
         setSensorFlag = 0;
         sampling = 0;
         timeCount = 0;
@@ -593,7 +607,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
             if (spinner_hantei.getSelectedItemPosition() != 0){
-                if(flag2 == 0){
+                if(flagDetection == 0){
                     if (swallow.contains(data1.size()-1)) {
                         data.addEntry(new Entry(set4.getEntryCount(),5), 2);
                     }
@@ -773,6 +787,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             setCharacteristicNotification( UUID_SERVICE_PRIVATE, UUID_CHARACTERISTIC_PRIVATE1 );
             initChart();
             countDownDialog();
+
+            checker1 = new CheckSwallow(Templist.get(1)); //長いV字型
+            checker2 = new CheckSwallow(Templist.get(0)); //バスタブ型
             mButton_start.setEnabled(false);
             mButton_set_on.setEnabled(false);
             mButton_set_off.setEnabled(false);
@@ -911,10 +928,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         log.clear();
         swallow.clear();
         diff.clear();
-        //smoothingDiff.clear();
         DTWDistance.clear();
-        checker.initialized();
-
 
         // GUIアイテムの有効無効の設定
         // 接続ボタンのみ有効にする
@@ -986,10 +1000,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else {
                     bw.write("試行事例," + "メンデルソン手技" + "\n");
                 }
-                bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + "\n");
+                if (usedTemplate == 1){
+                    bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + ",検出テンプレート" + ",長いV時型"+ "\n");
+                }
+                else if (usedTemplate == 2){
+                    bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + ",検出テンプレート" + ",バスタブ型"+ "\n");
+                }
+                else {
+                    bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + ",検出テンプレート" + ",未検出"+ "\n");
+                }
                 bw.write("最大挙上時間," + String.valueOf(maxTimeCount)+ "\n");
                 bw.write("安静時間," + String.valueOf((spinner_countDown.getSelectedItemPosition()+1)*10) + "\n");
-                //bw.write("CH1,CH2,Difference,LOG,Detection\n");
                 bw.write("CH1,CH2,LOG,Detection\n");
                 for (int i = 0; i < data1.size(); i++) {
                     //bw.write(data1.get(i) + "," + data2.get(i) + "," + smoothingDiff.get(i) + "," );
@@ -1010,20 +1031,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 bw.flush();
                 bw.close();
 
-                if (!Templist.isEmpty() && !DTWDistance.isEmpty()){
-                    for (int p=0; p<Templist.size(); p++){
-                        bw_DTW.write("Template" + String.valueOf(p+1) + ",");
+                bw_DTW.write("template1,template2,,diff2\n");
+                for (int t=0; t<sampling; t++){
+                    double DTWDistance = checker1.getDTW().get(t);
+                    double DTWDistance2 = checker2.getDTW().get(t);
+                    double smoothingDTWDiff = checker2.getSPRING_DTW().getSmoothingDTWDiff().get(t);
+
+                    if (t<onset + 10){
+                        bw_DTW.write(",,,\n");
                     }
-                    bw_DTW.write("\n");
-                    for (int i=0; i<DTWDistance.get(0).size(); i++){ //サンプリング数
-                        for (int p=0; p<DTWDistance.size(); p++){ //テンプレートの数
-                            bw_DTW.write(String.valueOf(DTWDistance.get(p).get(i)) + ",");
-                        }
-                        bw_DTW.write("\n");
+                    else {
+                        bw_DTW.write(String.valueOf(DTWDistance) + "," + String.valueOf(DTWDistance2) + ",," + String.valueOf(smoothingDTWDiff)+"\n");
                     }
-                    bw_DTW.flush();
-                    bw_DTW.close();
                 }
+                bw_DTW.flush();
+                bw_DTW.close();
 
                 ((TextView) findViewById(R.id.textview_message)).setText("ファイルを書き込みました。");
 
@@ -1094,7 +1116,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         for (ArrayList<Double> elem : DTWDistance){
             elem.clear();
         }
-        checker.initialized();
     }
 
 
