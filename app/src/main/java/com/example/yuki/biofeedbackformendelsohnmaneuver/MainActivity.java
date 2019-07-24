@@ -86,11 +86,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ArrayList<Double> data2 = new ArrayList<>();
     private ArrayList<Integer> log = new ArrayList<>();
     private ArrayList<Integer> swallow = new ArrayList<>();
-    private ArrayList<Double> diff = new ArrayList<>();
     private ArrayList<ArrayList<Double>> Templist = new ArrayList<>();
     private ArrayList<ArrayList<Double>> DTWDistance = new ArrayList<>();
     private double maxData1, maxData2, minData1, minData2;
-    private int flagDetection;
+    private int flagST, flagDetection;
     private int setSensorFlag;
     private int sampling;
     private int timeCount=0;
@@ -235,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                     //ログの時間を表示させる。
-                    if (flagDetection == 1) {
+                    if (flagST == 1) {
                         timeCount++;
                         // 別スレッドを実行
                         new Thread(new Runnable() {
@@ -265,11 +264,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             swallow.add(sampling);
                             flagDetection = 1;
                             writeCommand("3");
-                            XAxis xAxis = mChart.getXAxis();
-                            LimitLine detection = new LimitLine(sampling, "Detection");
-                            detection.setLineWidth(4f);
-                            detection.setLineColor(ColorTemplate.JOYFUL_COLORS[1]);
-                            xAxis.addLimitLine(detection);
+                            DrawDetection(1,onset);
                         }
                         checker1.addData(data, sampling, 1);
                         checker2.addData(data, sampling, 2);
@@ -283,6 +278,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             offset = checker1.getSPRING_DTW().getT_end() - 1;
                             flagDetection = 2;
                             writeCommand("3");
+                            DrawDetection(1,offset);
                             checker2.addData(data, sampling, 2);
                         }
                         else if (checker2.checkOffset(data, sampling, 2) ){
@@ -291,6 +287,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             offset = sampling - 1;
                             flagDetection = 2;
                             writeCommand("3");
+                            DrawDetection(1,offset);
                         }
                     }
                     else{
@@ -305,10 +302,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     else if(spinner_channel.getSelectedItemPosition()+1 == 2){
                         addEntry((CH2-minData2)/(maxData2-minData2));
                     }
-
-
-                    sampling++;
                 }
+                sampling++;
                 return;
             }
         }
@@ -454,6 +449,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mChart.clear();
         mChart = findViewById(R.id.chart);
         mChart.clearAnimation();
+
+        flagST = 0;
         flagDetection = 0;
         setSensorFlag = 0;
         sampling = 0;
@@ -493,6 +490,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         xl.setDrawGridLines(false);
         xl.setAvoidFirstLastClipping(false);
         xl.setEnabled(true);
+        xl.removeAllLimitLines();
 
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.removeAllLimitLines();
@@ -511,6 +509,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     
     private void initChartForNormalize() {
 
+        sampling = 0;
         mChart = findViewById(R.id.chart);
         mChart.clearAnimation();
 
@@ -545,7 +544,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         xl.setDrawGridLines(false);
         xl.setAvoidFirstLastClipping(false);
         xl.setEnabled(true);
-
+        xl.removeAllLimitLines();
 
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.setTextColor(Color.BLACK);
@@ -594,12 +593,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             //x軸について
             XAxis xl = mChart.getXAxis();
-            if(data1.size() < 120){
+            if(sampling < 120){
                 xl.setAxisMaximum(120f);
                 xl.setAxisMinimum(0f);
             }
             else{
-                xl.setAxisMaximum(data1.size());
+                xl.setAxisMaximum(sampling);
             }
 
             //更新を通知
@@ -780,12 +779,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (mButton_log.getId() == v.getId()) //ログボタン
         {
-            XAxis xAxis = mChart.getXAxis();
-            LimitLine ST = new LimitLine(sampling, "ST");
-            ST.setLineWidth(4f);
-            ST.setLineColor(ColorTemplate.JOYFUL_COLORS[3]);
-            xAxis.addLimitLine(ST);
-
+            if (flagST == 0){
+                flagST = 1;
+            }
+            else {
+                flagST = 0;
+            }
+            DrawDetection(0,sampling);
             log.add(sampling);
         }
         if (mButton_set_on.getId() == v.getId() && setSensorFlag == 0) //センサ位置調整用ボタン
@@ -885,7 +885,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         data2.clear();
         log.clear();
         swallow.clear();
-        diff.clear();
         DTWDistance.clear();
 
         // GUIアイテムの有効無効の設定
@@ -1069,8 +1068,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         data2.clear();
         log.clear();
         swallow.clear();
-        //smoothingDiff.clear();
-        diff.clear();
         for (ArrayList<Double> elem : DTWDistance){
             elem.clear();
         }
@@ -1110,6 +1107,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    private void DrawDetection(int select, int time){
+        XAxis xAxis = mChart.getXAxis();
+        if (select == 0){
+            LimitLine detection = new LimitLine(time);
+            detection.setLineWidth(8f);
+            detection.setLineColor(ColorTemplate.JOYFUL_COLORS[3]);
+            xAxis.addLimitLine(detection);
+        }
+        else {
+            LimitLine detection = new LimitLine(time);
+            detection.setLineWidth(8f);
+            detection.setLineColor(ColorTemplate.JOYFUL_COLORS[1]);
+            xAxis.addLimitLine(detection);
+        }
     }
 }
 
