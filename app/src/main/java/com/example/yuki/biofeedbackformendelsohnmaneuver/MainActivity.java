@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ArrayList<ArrayList<Double>> Templist = new ArrayList<>();
     private ArrayList<ArrayList<Double>> DTWDistance = new ArrayList<>();
     private double maxData1, maxData2, minData1, minData2;
-    private int flag,flagDetection;
+    private int flagDetection;
     private int setSensorFlag;
     private int sampling;
     private int timeCount=0;
@@ -265,6 +265,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             swallow.add(sampling);
                             flagDetection = 1;
                             writeCommand("3");
+                            XAxis xAxis = mChart.getXAxis();
+                            LimitLine detection = new LimitLine(sampling, "Detection");
+                            detection.setLineWidth(4f);
+                            detection.setLineColor(ColorTemplate.JOYFUL_COLORS[1]);
+                            xAxis.addLimitLine(detection);
                         }
                         checker1.addData(data, sampling, 1);
                         checker2.addData(data, sampling, 2);
@@ -449,7 +454,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mChart.clear();
         mChart = findViewById(R.id.chart);
         mChart.clearAnimation();
-        flag = 0;
         flagDetection = 0;
         setSensorFlag = 0;
         sampling = 0;
@@ -490,12 +494,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         xl.setAvoidFirstLastClipping(false);
         xl.setEnabled(true);
 
-
         YAxis leftAxis = mChart.getAxisLeft();
+        leftAxis.removeAllLimitLines();
         leftAxis.setTextColor(Color.BLACK);
 
-        leftAxis.setAxisMaximum(1.2f);
-        leftAxis.setAxisMinimum(-0.2f);
+        leftAxis.setAxisMaximum(1.5f);
+        leftAxis.setAxisMinimum(-0.5f);
         leftAxis.setEnabled(true);
 
         leftAxis.setDrawGridLines(true);
@@ -574,9 +578,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (data != null) {
 
             ILineDataSet set1 = data.getDataSetByIndex(0);
-            ILineDataSet set3 = data.getDataSetByIndex(1);
-            ILineDataSet set4 = data.getDataSetByIndex(2);
-
 
             if (set1 == null) {
                 if (spinner_channel.getSelectedItemPosition()+1 == 1){
@@ -587,54 +588,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 data.addDataSet(set1);
             }
-            if (set3 == null) {
-                set3 = createSet(2);
-                data.addDataSet(set3);
-            }
-            if (set4 == null && spinner_hantei.getSelectedItemPosition() != 0) {
-                set4 = createSet(3);
-                data.addDataSet(set4);
-            }
-
 
             data.addEntry(new Entry(set1.getEntryCount(),(float) value), 0);
 
-
-            if (flag == 0) {
-                if (log.contains(sampling)) {
-                    data.addEntry(new Entry(set3.getEntryCount(), 5), 1);
-                    flag = 1;
-                } else {
-                    data.addEntry(new Entry(set3.getEntryCount(), -1), 1);
-                }
-            } else {
-                if (log.contains(sampling)) {
-                    data.addEntry(new Entry(set3.getEntryCount(), -1), 1);
-                    flag = 0;
-                } else {
-                    data.addEntry(new Entry(set3.getEntryCount(), 5), 1);
-                }
-            }
-
-
-            if (spinner_hantei.getSelectedItemPosition() != 0){
-                if(flagDetection == 0){
-                    if (swallow.contains(sampling)) {
-                        data.addEntry(new Entry(set4.getEntryCount(),5), 2);
-                    }
-                    else {
-                        data.addEntry(new Entry(set4.getEntryCount(),-1), 2);
-                    }
-                }
-                else{
-                    if (swallow.contains(sampling)) {
-                        data.addEntry(new Entry(set4.getEntryCount(),-1), 2);
-                    }
-                    else {
-                        data.addEntry(new Entry(set4.getEntryCount(),5), 2);
-                    }
-                }
-            }
 
             //x軸について
             XAxis xl = mChart.getXAxis();
@@ -657,33 +613,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private LineDataSet createSet(int num) {
         LineDataSet set1;
-        if (num < 2){
-            set1 = new LineDataSet(null, "CH" + (num+1));
-        }
-        else if (num == 2){
-            set1 = new LineDataSet(null, "LOG");
-        }
-        else{
-            set1 = new LineDataSet(null, "Detection");
-        }
+        set1 = new LineDataSet(null, "CH" + (num+1));
+
 
         set1.setDrawCircles(false);
         set1.setAxisDependency(YAxis.AxisDependency.LEFT);
         if(num == 0){
             set1.setColor(ColorTemplate.JOYFUL_COLORS[4]);
         }
-        else if (num==1){
+        else{
             set1.setColor(ColorTemplate.JOYFUL_COLORS[0]);
         }
-        else if(num==2){
-            set1.setColor(ColorTemplate.JOYFUL_COLORS[3]);
-            //set1.setDrawFilled(true);
-            //set1.setFillAlpha(80);
-            //set1.setFillColor(ColorTemplate.JOYFUL_COLORS[3]);
-        }
-        else{
-            set1.setColor(ColorTemplate.JOYFUL_COLORS[1]);
-        }
+
         set1.setLineWidth(8f);
         set1.setHighLightColor(Color.rgb(244, 117, 117));
         set1.setValueTextColor(Color.WHITE);
@@ -839,6 +780,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (mButton_log.getId() == v.getId()) //ログボタン
         {
+            XAxis xAxis = mChart.getXAxis();
+            LimitLine ST = new LimitLine(sampling, "ST");
+            ST.setLineWidth(4f);
+            ST.setLineColor(ColorTemplate.JOYFUL_COLORS[3]);
+            xAxis.addLimitLine(ST);
+
             log.add(sampling);
         }
         if (mButton_set_on.getId() == v.getId() && setSensorFlag == 0) //センサ位置調整用ボタン
