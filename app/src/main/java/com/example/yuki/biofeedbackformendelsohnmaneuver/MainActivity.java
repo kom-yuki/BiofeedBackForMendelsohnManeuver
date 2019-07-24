@@ -226,17 +226,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     data2.add((CH2-minData2)/(maxData2-minData2));
                     ArrayList<Double> data = null;
 
+                    //挙上判定するセンサデータ選択
                     if (spinner_channel.getSelectedItemPosition()+1 == 1){
-                        addEntry((CH1-minData1)/(maxData1-minData1));
                         data = data1;
                     }
                     else if(spinner_channel.getSelectedItemPosition()+1 == 2){
-                        addEntry((CH2-minData2)/(maxData2-minData2));
                         data = data2;
                     }
 
                     //ログの時間を表示させる。
-                    if (flag == 1) {
+                    if (flagDetection == 1) {
                         timeCount++;
                         // 別スレッドを実行
                         new Thread(new Runnable() {
@@ -265,6 +264,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             onset = sampling;
                             swallow.add(sampling);
                             flagDetection = 1;
+                            writeCommand("3");
                         }
                         checker1.addData(data, sampling, 1);
                         checker2.addData(data, sampling, 2);
@@ -277,6 +277,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             swallow.add(sampling);
                             offset = checker1.getSPRING_DTW().getT_end() - 1;
                             flagDetection = 2;
+                            writeCommand("3");
                             checker2.addData(data, sampling, 2);
                         }
                         else if (checker2.checkOffset(data, sampling, 2) ){
@@ -284,12 +285,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             swallow.add(sampling);
                             offset = sampling - 1;
                             flagDetection = 2;
+                            writeCommand("3");
                         }
                     }
                     else{
                         checker1.addData(data, sampling, 1);
                         checker2.addData(data, sampling, 2);
                     }
+
+                    //取得データ及び検出結果の描画
+                    if (spinner_channel.getSelectedItemPosition()+1 == 1){
+                        addEntry((CH1-minData1)/(maxData1-minData1));
+                    }
+                    else if(spinner_channel.getSelectedItemPosition()+1 == 2){
+                        addEntry((CH2-minData2)/(maxData2-minData2));
+                    }
+
 
                     sampling++;
                 }
@@ -483,8 +494,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         YAxis leftAxis = mChart.getAxisLeft();
         leftAxis.setTextColor(Color.BLACK);
 
-        leftAxis.setAxisMaximum(1.1f);
-        leftAxis.setAxisMinimum(-0.0f);
+        leftAxis.setAxisMaximum(1.2f);
+        leftAxis.setAxisMinimum(-0.2f);
         leftAxis.setEnabled(true);
 
         leftAxis.setDrawGridLines(true);
@@ -590,14 +601,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
             if (flag == 0) {
-                if (log.contains(data1.size() - 1)) {
+                if (log.contains(sampling)) {
                     data.addEntry(new Entry(set3.getEntryCount(), 5), 1);
                     flag = 1;
                 } else {
                     data.addEntry(new Entry(set3.getEntryCount(), -1), 1);
                 }
             } else {
-                if (log.contains(data1.size() - 1)) {
+                if (log.contains(sampling)) {
                     data.addEntry(new Entry(set3.getEntryCount(), -1), 1);
                     flag = 0;
                 } else {
@@ -608,7 +619,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             if (spinner_hantei.getSelectedItemPosition() != 0){
                 if(flagDetection == 0){
-                    if (swallow.contains(data1.size()-1)) {
+                    if (swallow.contains(sampling)) {
                         data.addEntry(new Entry(set4.getEntryCount(),5), 2);
                     }
                     else {
@@ -616,7 +627,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
                 }
                 else{
-                    if (swallow.contains(data1.size()-1)) {
+                    if (swallow.contains(sampling)) {
                         data.addEntry(new Entry(set4.getEntryCount(),-1), 2);
                     }
                     else {
@@ -666,9 +677,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         else if(num==2){
             set1.setColor(ColorTemplate.JOYFUL_COLORS[3]);
-            set1.setDrawFilled(true);
-            set1.setFillAlpha(80);
-            set1.setFillColor(ColorTemplate.JOYFUL_COLORS[3]);
+            //set1.setDrawFilled(true);
+            //set1.setFillAlpha(80);
+            //set1.setFillColor(ColorTemplate.JOYFUL_COLORS[3]);
         }
         else{
             set1.setColor(ColorTemplate.JOYFUL_COLORS[1]);
@@ -828,7 +839,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (mButton_log.getId() == v.getId()) //ログボタン
         {
-            log.add(data1.size());
+            log.add(sampling);
         }
         if (mButton_set_on.getId() == v.getId() && setSensorFlag == 0) //センサ位置調整用ボタン
         {
