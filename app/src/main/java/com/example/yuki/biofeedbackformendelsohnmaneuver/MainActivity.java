@@ -15,6 +15,7 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.graphics.Color;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -41,7 +42,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -401,46 +405,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
 
         //テンプレートの読み込み
-        String dirTempString = Environment.getExternalStorageDirectory() + "/BiofeedbackForMendelsohnManeuver/Template/";
-        File dirTemp = new File(dirTempString);
-        File[] filesTemp;
-        filesTemp = dirTemp.listFiles();
-
-        java.util.Arrays.sort(filesTemp, new Comparator<File>() {
-            public int compare(File file1, File file2){
-                return file1.getName().compareTo(file2.getName());
+        String[] filesName;
+        AssetManager assetManager = getResources().getAssets();
+        try {
+            filesName = assetManager.list("template");
+            for (int i=0; i<filesName.length; i++){
+                BufferedReader br = new BufferedReader(new InputStreamReader(assetManager.open("template/" + filesName[i])));
+                ArrayList<Double> data = new ArrayList<>();
+                ArrayList<Double> DTW = new ArrayList<>();
+                String line;
+                while((line = br.readLine()) != null){
+                    data.add(Double.parseDouble(line));
+                }
+                Templist.add(data);
+                DTWDistance.add(DTW);
+                br.close();
             }
-        });
-
-        if (filesTemp == null){
+            ( (TextView)findViewById( R.id.textview_message ) ).setText("テンプレートを読み込みました。");
+        } catch (IOException e) {
+            e.printStackTrace();
             new AlertDialog.Builder(MainActivity.this)
                     .setTitle("Error!!")
                     .setMessage("テンプレートが読み込めませんでした。")
                     .setPositiveButton("OK", null)
                     .show();
-        }
-        else {
-            for(int i = 0; i<filesTemp.length; i++){
-                if(!filesTemp[i].isDirectory() && !filesTemp[i].getName().equals(".DS_Store")){
-                    try {
-                        BufferedReader br = new BufferedReader(new FileReader(dirTempString + filesTemp[i].getName()));
-                        ArrayList<Double> data = new ArrayList<>();
-                        ArrayList<Double> DTW = new ArrayList<>();
-                        String line;
-                        while((line = br.readLine()) != null){
-                            data.add(Double.parseDouble(line));
-                        }
-                        Templist.add(data);
-                        DTWDistance.add(DTW);
-                        br.close();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            ( (TextView)findViewById( R.id.textview_message ) ).setText("テンプレートを読み込みました。");
         }
     }
 

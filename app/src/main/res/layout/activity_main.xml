@@ -86,7 +86,7 @@
                 android:inputType="" />
 
             <Space
-                android:layout_width="50dp"
+                android:layout_width="50sp"
                 android:layout_height="wrap_content" />
 
             <TextView
@@ -236,7 +236,7 @@
         <com.github.mikephil.charting.charts.LineChart
             android:id="@+id/chart"
             android:layout_width="match_parent"
-            android:layout_height="350dp"
+            android:layout_height="350sp"
             android:layout_weight="1" />
 
         <FrameLayout android:layout_width="fill_parent"
@@ -284,7 +284,7 @@
                 android:layout_gravity="center|bottom"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:gravity="right"
                 android:id="@+id/timeCount"
                 android:textSize="80sp" />
         </FrameLayout>
