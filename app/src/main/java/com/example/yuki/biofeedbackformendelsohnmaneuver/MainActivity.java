@@ -506,7 +506,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         rightAxis.setEnabled(false);
     }
-    
+
     private void initChartForNormalize() {
 
         sampling = 0;
