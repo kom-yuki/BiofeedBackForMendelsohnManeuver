@@ -966,7 +966,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     bw.write(  "検出テンプレート" + ",バスタブ型"+ "\n");
                 }
                 else {
-                    bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + ",検出テンプレート" + ",未検出"+ "\n");
+                    bw.write("検出テンプレート" + ",未検出"+ "\n");
                 }
                 bw.write("最大挙上時間," + String.valueOf(maxTimeCount)+ "\n");
                 bw.write("安静時間," + String.valueOf((spinner_countDown.getSelectedItemPosition()+1)*10) + "\n");
