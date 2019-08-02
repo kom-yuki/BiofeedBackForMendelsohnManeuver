@@ -21,7 +21,7 @@ class CheckSwallow {
     }
 
 
-    boolean checkOnset(ArrayList<Double> data, int time){
+    boolean checkOnset(ArrayList<Double> data, int time, int ansei){
         if(time == 0){
             diff.add(0d);
             smoothingDiff.add(0d);
@@ -33,13 +33,12 @@ class CheckSwallow {
             smoothingDiff.add(0d);
         }
 
-        /*最初の安静時は3.5秒間*/
-        if(time<35){
+        if(time<ansei){
             sumDiff += smoothingDiff.get(time);
         }
-        else if(time==35){
-            average = sumDiff/35;
-            for (int j=0;j<35;j++){
+        else if(time==ansei){
+            average = sumDiff/ansei;
+            for (int j=0;j<ansei;j++){
                 if(minDiff > smoothingDiff.get(j)){
                     minDiff = smoothingDiff.get(j);
                 }

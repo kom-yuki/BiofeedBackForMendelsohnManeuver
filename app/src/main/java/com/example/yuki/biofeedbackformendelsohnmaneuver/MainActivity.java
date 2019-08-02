@@ -95,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private double maxData1, maxData2, minData1, minData2;
     private int flagST, flagDetection;
     private int setSensorFlag;
-    private int sampling;
+    private int sampling, ansei;
     private int timeCount=0;
     private int maxTimeCount=0;
     private int onset,offset,detectedPoint,usedTemplate;
@@ -263,7 +263,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //挙上判定
 
                     if (flagDetection == 0){
-                        if (checker1.checkOnset(data, sampling)){
+                        if (checker1.checkOnset(data, sampling, ansei)){
                             onset = sampling;
                             swallow.add(sampling);
                             flagDetection = 1;
@@ -293,6 +293,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             writeCommand("3");
                             DrawDetection(1,offset);
                         }
+                    }
+                    else if (flagDetection == 1 && sampling < onset + 10){
+                            if (data.get(sampling-1) > 0.5){
+                                swallow.add(sampling - 1);
+                                offset = sampling - 1;
+                                flagDetection = 2;
+                                writeCommand("3");
+                                DrawDetection(1, offset);
+                            }
+                        checker1.addData(data, sampling, 1);
+                        checker2.addData(data, sampling, 2);
                     }
                     else{
                         checker1.addData(data, sampling, 1);
@@ -729,6 +740,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             checker1 = new CheckSwallow(Templist.get(1)); //長いV字型
             checker2 = new CheckSwallow(Templist.get(0)); //バスタブ型
+            ansei = (spinner_countDown.getSelectedItemPosition()+1)*10;
             mButton_start.setEnabled(false);
             mButton_set_on.setEnabled(false);
             mButton_set_off.setEnabled(false);
@@ -737,6 +749,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             spinner_channel.setClickable(false);
             spinner_hantei.setClickable(false);
             spinner_countDown.setClickable(false);
+
 
             Date date = new Date(System.currentTimeMillis());
             DateFormat df  = new SimpleDateFormat("yyyyMMddkkmmss");
@@ -945,11 +958,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else {
                     bw.write("試行事例," + "メンデルソン手技" + "\n");
                 }
+                bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + "\n");
                 if (usedTemplate == 1){
-                    bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + ",検出テンプレート" + ",長いV時型"+ "\n");
+                    bw.write(  "検出テンプレート" + ",長いV時型"+ "\n");
                 }
                 else if (usedTemplate == 2){
-                    bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + ",検出テンプレート" + ",バスタブ型"+ "\n");
+                    bw.write(  "検出テンプレート" + ",バスタブ型"+ "\n");
                 }
                 else {
                     bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + ",検出テンプレート" + ",未検出"+ "\n");
