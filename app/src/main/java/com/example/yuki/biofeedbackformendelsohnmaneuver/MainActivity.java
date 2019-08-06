@@ -88,6 +88,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //データ配列
     private ArrayList<Double> data1 = new ArrayList<>();
     private ArrayList<Double> data2 = new ArrayList<>();
+    private ArrayList<Double> normalizedData1 = new ArrayList<>();
+    private ArrayList<Double> normalizedData2 = new ArrayList<>();
     private ArrayList<Integer> log = new ArrayList<>();
     private ArrayList<Integer> swallow = new ArrayList<>();
     private ArrayList<ArrayList<Double>> Templist = new ArrayList<>();
@@ -224,17 +226,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 //センサ位置調整していないとき，挙上検出行う
                 if (setSensorFlag == 0) {
+                    data1.add(CH1);
+                    data2.add(CH2);
+
                     //正規化
-                    data1.add((CH1-minData1)/(maxData1-minData1));
-                    data2.add((CH2-minData2)/(maxData2-minData2));
+                    normalizedData1.add((CH1-minData1)/(maxData1-minData1));
+                    normalizedData2.add((CH2-minData2)/(maxData2-minData2));
                     ArrayList<Double> data = null;
 
                     //挙上判定するセンサデータ選択
                     if (spinner_channel.getSelectedItemPosition()+1 == 1){
-                        data = data1;
+                        data = normalizedData1;
                     }
                     else if(spinner_channel.getSelectedItemPosition()+1 == 2){
-                        data = data2;
+                        data = normalizedData2;
                     }
 
                     //ログの時間を表示させる。
@@ -261,7 +266,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     }
 
                     //挙上判定
-
                     if (flagDetection == 0){
                         if (checker1.checkOnset(data, sampling, ansei)){
                             onset = sampling;
@@ -273,13 +277,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         checker1.addData(data, sampling, 1);
                         checker2.addData(data, sampling, 2);
                     }
-                    else if (flagDetection == 1 && sampling >= onset + 10){
+                    else if (flagDetection == 1 && sampling >= onset + 10){ //メンデルソン手技用の検出アルゴリズム
                         //select = 1はSPRINGで最適部分検出，select = 2は最初に閾値下回った部分を検出
                         if (checker1.checkOffset(data, sampling, 1)) { //checkerer1は長いV字型
                             usedTemplate = 1;
                             detectedPoint = sampling;
-                            swallow.add(sampling);
                             offset = checker1.getSPRING_DTW().getT_end() - 1;
+                            swallow.add(offset);
                             flagDetection = 2;
                             writeCommand("3");
                             DrawDetection(1,offset);
@@ -294,16 +298,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             DrawDetection(1,offset);
                         }
                     }
-                    else if (flagDetection == 1 && sampling < onset + 10){
-                            if (data.get(sampling-1) > 0.5){
-                                swallow.add(sampling - 1);
-                                offset = sampling - 1;
-                                flagDetection = 2;
-                                writeCommand("3");
-                                DrawDetection(1, offset);
-                            }
+                    else if (flagDetection == 1 && sampling < onset + 10 && sampling > onset + 5){ //通常嚥下用の検出アルゴリズム
                         checker1.addData(data, sampling, 1);
                         checker2.addData(data, sampling, 2);
+                        if (data.get(sampling) > data.get(onset-5)*0.7){
+                            offset = sampling;
+                            swallow.add(sampling);
+                            flagDetection = 2;
+                            writeCommand("3");
+                            DrawDetection(1, offset);
+                        }
                     }
                     else{
                         checker1.addData(data, sampling, 1);
@@ -554,18 +558,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         YAxis rightAxis = mChart.getAxisRight();
 
-        LimitLine upper_limit = new LimitLine(1.4f, "Upper Limit");
+        LimitLine upper_limit = new LimitLine(1.5f, "Upper Limit");
         upper_limit.setLabelPosition(LimitLine.LimitLabelPosition.RIGHT_TOP);
 
-        LimitLine lower_limit = new LimitLine(1.2f, "Lower Limit");
+        LimitLine lower_limit = new LimitLine(1.0f, "Lower Limit");
         lower_limit.setLabelPosition(LimitLine.LimitLabelPosition.RIGHT_BOTTOM);
 
         leftAxis.removeAllLimitLines();
         leftAxis.addLimitLine(upper_limit);
         leftAxis.addLimitLine(lower_limit);
 
-        leftAxis.setAxisMaximum(1.8f);
-        leftAxis.setAxisMinimum(0.8f);
+        leftAxis.setAxisMaximum(2.0f);
+        leftAxis.setAxisMinimum(0.5f);
 
         rightAxis.setEnabled(false);
     }
@@ -759,23 +763,29 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (mButton_end.getId() == v.getId())   //エンドボタン押されたとき
         {
-            ( (TextView)findViewById( R.id.textview_message ) ).setText("計測終了");
             writeCommand("2");
-            mButton_end.setEnabled(false);
-            mButton_log.setEnabled(false);
-            mButton_start.setEnabled(true);
-            mButton_set_on.setEnabled(true);
-            mButton_set_off.setEnabled(false);
-            spinner_channel.setClickable(true);
-            spinner_hantei.setClickable(true);
-            spinner_countDown.setClickable(true);
+            ( (TextView)findViewById( R.id.textview_message ) ).setText("計測終了");
 
-            mChart.setTouchEnabled(true);
-            mChart.setDragEnabled(true);
+            //エンドボタン押されて，通信切り終わってから初期化（0.5sのディレイ）
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mButton_end.setEnabled(false);
+                    mButton_log.setEnabled(false);
+                    mButton_start.setEnabled(true);
+                    mButton_set_on.setEnabled(true);
+                    mButton_set_off.setEnabled(false);
+                    spinner_channel.setClickable(true);
+                    spinner_hantei.setClickable(true);
+                    spinner_countDown.setClickable(true);
 
-            writeData();
-            init();
+                    mChart.setTouchEnabled(true);
+                    mChart.setDragEnabled(true);
 
+                    writeData();
+                    init();
+                }
+            }, 250);
             return;
         }
         if (mButton_log.getId() == v.getId()) //ログボタン
@@ -791,6 +801,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (mButton_set_on.getId() == v.getId() && setSensorFlag == 0) //センサ位置調整用ボタン
         {
+            writeCommand("1");
             maxData1 = Double.MIN_VALUE;
             minData1 = Double.MAX_VALUE;
             maxData2 = Double.MIN_VALUE;
@@ -799,7 +810,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             setSensorFlag = 1;
             ( (TextView)findViewById( R.id.textview_message ) ).setText("センサ位置調整中");
             initChartForNormalize();
-            writeCommand("1");
             setCharacteristicNotification( UUID_SERVICE_PRIVATE, UUID_CHARACTERISTIC_PRIVATE1 );
 
             mButton_start.setEnabled(false);
@@ -813,25 +823,31 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
         if (mButton_set_off.getId() == v.getId() && setSensorFlag == 1)
         {
-            setSensorFlag = 0;
-            ( (TextView)findViewById( R.id.textview_message ) ).setText("センサ位置調整完了");
-            initChartForNormalize();
             writeCommand("2");
 
-            mButton_start.setEnabled(true);
-            mButton_set_on.setEnabled(true);
-            mButton_set_off.setEnabled(false);
-            mButton_end.setEnabled(false);
-            mButton_log.setEnabled(false);
-            spinner_channel.setClickable(true);
-            spinner_hantei.setClickable(true);
-            spinner_countDown.setClickable(true);
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    setSensorFlag = 0;
+                    ( (TextView)findViewById( R.id.textview_message ) ).setText("センサ位置調整完了");
+                    initChartForNormalize();
 
-            mChart.setTouchEnabled(true);
-            mChart.setDragEnabled(true);
+                    init();
+                    mButton_start.setEnabled(true);
+                    mButton_set_on.setEnabled(true);
+                    mButton_set_off.setEnabled(false);
+                    mButton_end.setEnabled(false);
+                    mButton_log.setEnabled(false);
+                    spinner_channel.setClickable(true);
+                    spinner_hantei.setClickable(true);
+                    spinner_countDown.setClickable(true);
 
-            init();
+                    mChart.setTouchEnabled(true);
+                    mChart.setDragEnabled(true);
+                }
+            }, 250);
         }
+
         if (subject.getId() == v.getId()) //被験者名指定選択用
         {
             subject.setFocusable(true);
@@ -884,6 +900,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mDataCharacteristic = null;
         data1.clear();
         data2.clear();
+        normalizedData1.clear();
+        normalizedData2.clear();
         log.clear();
         swallow.clear();
         DTWDistance.clear();
@@ -959,6 +977,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     bw.write("試行事例," + "メンデルソン手技" + "\n");
                 }
                 bw.write("隆起部上センサ," + (spinner_channel.getSelectedItemPosition()+1) + "\n");
+                bw.write("安静時間," + String.valueOf((spinner_countDown.getSelectedItemPosition()+1)*10) + "\n");
+
                 if (usedTemplate == 1){
                     bw.write(  "検出テンプレート" + ",長いV時型"+ "\n");
                 }
@@ -968,12 +988,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 else {
                     bw.write("検出テンプレート" + ",未検出"+ "\n");
                 }
-                bw.write("最大挙上時間," + String.valueOf(maxTimeCount)+ "\n");
-                bw.write("安静時間," + String.valueOf((spinner_countDown.getSelectedItemPosition()+1)*10) + "\n");
-                bw.write("CH1,CH2,LOG,Detection\n");
+
+                bw.write("CH1,CH2,,LOG,Detection,,normalized-CH1,normalized-CH2\n");
                 for (int i = 0; i < data1.size(); i++) {
-                    //bw.write(data1.get(i) + "," + data2.get(i) + "," + smoothingDiff.get(i) + "," );
-                    bw.write(data1.get(i) + "," + data2.get(i) + ",");
+                    bw.write(data1.get(i) + "," + data2.get(i) + ",,");
                     if(log.contains(i)){
                         bw.write( 1 + ",");
                     }
@@ -981,11 +999,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         bw.write( 0 + ",");
                     }
                     if(swallow.contains(i)){
-                        bw.write(1 + "\n");
+                        bw.write(1 + ",,");
                     }
                     else {
-                        bw.write(0 + "\n");
+                        bw.write(0 + ",,");
                     }
+                    bw.write(normalizedData1.get(i) + "," + normalizedData2.get(i) + "\n");
                 }
                 bw.flush();
                 bw.close();
@@ -1068,6 +1087,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void init(){
         data1.clear();
         data2.clear();
+        normalizedData1.clear();
+        normalizedData2.clear();
         log.clear();
         swallow.clear();
         for (ArrayList<Double> elem : DTWDistance){

@@ -58,13 +58,20 @@ class CheckSwallow {
     }
 
     boolean checkOffset(ArrayList<Double> data, int time, int select){
-        boolean detection;
+        boolean detection = false;
 
         if (select == 1){
             detection =  spring_dtw.calcOptimal(data.get(time), time + 1, 3.0); //長いV字型
         }
-        else {
+        else if (select == 2){
             detection =  spring_dtw.calcFirst(data.get(time), time+1, 6.0); //バスタブ型
+        }
+        else{
+            diff.add(Math.abs(data.get(time) - data.get(time-1)));
+            smoothingDiff.add((diff.get(time)+diff.get(time-1)+diff.get(time-2)+diff.get(time-3)+diff.get(time-4))/5);
+            if (smoothingDiff.get(time) > average + 1.5*rangeDiff) {
+                detection = true;
+            }
         }
 
         dtwDistance.add(spring_dtw.getDistance().get(time + 1).get(template.size()));
@@ -72,16 +79,13 @@ class CheckSwallow {
         return detection;
     }
 
-    void addData(ArrayList<Double> data, int time, int select){
-
-        if (select == 1){
-            spring_dtw.addDataNormal(data.get(time), time+1);
+    void addData(ArrayList<Double> data, int time, int select) {
+        if (select == 1) {
+            spring_dtw.addDataNormal(data.get(time), time + 1);
+        } else {
+            spring_dtw.addDataPathRestriction(data.get(time), time + 1);
         }
-        else {
-            spring_dtw.addDataPathRestriction(data.get(time), time+1);
-        }
-
-        dtwDistance.add(spring_dtw.getDistance().get(time+1).get(template.size()));
+        dtwDistance.add(spring_dtw.getDistance().get(time + 1).get(template.size()));
     }
 
     ArrayList<Double> getDTW(){
